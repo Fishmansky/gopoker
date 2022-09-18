@@ -31,13 +31,6 @@ type Hand struct {
 	Cards      []string
 }
 
-type CardInfo interface {
-	Rank()
-	Suit()
-}
-
-type Card string
-
 func Rank(card string) string {
 	return strings.Split(card, ".")[0]
 }
@@ -46,20 +39,19 @@ func Suit(card string) string {
 	return strings.Split(card, ".")[1]
 }
 
-func (t *Table) EvaluateHand(h *Hand) string {
-	allCards := append(t.CommunityCards, h.Cards...)
-	sortedCards := []int{}
-	for i, card := range allCards {
+func CardValues(cards []string) []int {
+	convertedCards := []int{}
+	for _, card := range cards {
 		var cardVal int
 		switch Rank(card) {
 		case "J":
 			cardVal = 11
 		case "Q":
-			cardVal = 11
+			cardVal = 12
 		case "K":
-			cardVal = 11
+			cardVal = 13
 		case "A":
-			cardVal = 11
+			cardVal = 14
 		default:
 			intVal, err := strconv.Atoi(Rank(card))
 			if err != nil {
@@ -67,8 +59,24 @@ func (t *Table) EvaluateHand(h *Hand) string {
 			}
 			cardVal = intVal
 		}
-
+		convertedCards = append(convertedCards, cardVal)
 	}
+	return convertedCards
+}
+
+func GroupCards(cards *[]string) []string {
+	return []string{}
+}
+
+func (t *Table) EvaluateHand(h *Hand) string {
+	// get cards from hand and table
+	allCards := []string{}
+	allCards = append(allCards, t.CommunityCards...)
+	allCards = append(allCards, h.Cards...)
+	// convert cards to int values
+	// convertedCards := CardValues(allCards)
+	// look for card pairs or groups in order
+
 	return "High Card"
 }
 
