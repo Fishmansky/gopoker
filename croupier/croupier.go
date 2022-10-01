@@ -140,55 +140,6 @@ func SameSuitCards(cards []string) bool {
 	return true
 }
 
-// func GetBestHand(kinds, orders, suits map[string][]string) (string, []string) {
-// 	pairs := 0
-// 	threes := 0
-// 	fours := 0
-// 	bestHand, bestcards := "High Card", []string{}
-// 	samesuit := len(suits) > 0
-// 	order := len(orders) > 0
-// 	for _, cards := range kinds {
-// 		switch len(cards) {
-// 		case 2:
-// 			pairs += 1
-// 		case 3:
-// 			threes += 1
-// 		case 4:
-// 			fours += 1
-// 		}
-// 	}
-
-// 	if samesuit && order {
-// 		for highC, cards := range orders {
-// 			if RankInt(highC) == 14 {
-// 				bestHand = BestHands[0]
-// 				bestcards = cards
-// 			} else {
-// 				bestHand = BestHands[1]
-// 				bestcards = cards
-// 			}
-// 		}
-// 	} else if !samesuit && order {
-// 		for _, cards := range orders {
-// 			bestHand = BestHands[1]
-// 			bestcards = cards
-// 		}
-
-// 	}
-// 	if fours == 1 {
-// 		bestHand = BestHands[2]
-// 		for k, _ := range kinds {
-// 			bestcards = kinds[k]
-// 		}
-// 	} else if threes == 1 {
-
-// 	}
-// 	if bestHand == "High Card" {
-
-// 	}
-// 	return bestHand, bestcards
-// }
-
 func SortCardsDesc(cards, sorted []string) []string {
 	if len(cards) == 0 {
 		return sorted
@@ -293,12 +244,12 @@ func (t *Table) EvaluateHand(h *Hand) (string, []string) {
 	pairs := 0
 	threes := 0
 	fours := 0
-	bestHand, bestcards := "High Card", []string{}
+	bestHand := "High Card"
 	allcards := []string{}
 	allcards = append(allcards, h.Cards...)
 	allcards = append(allcards, t.CommunityCards...)
 	sorted := []string{}
-	bestcards = SortCardsDesc(allcards, sorted)
+	bestcards := SortCardsDesc(allcards, sorted)
 	samesuit := len(suits) > 0
 	inOrder := len(order) > 0
 	for _, cards := range kinds {
@@ -337,8 +288,8 @@ func (t *Table) EvaluateHand(h *Hand) (string, []string) {
 	}
 	if fours == 1 {
 		bestHand = BestHands[2]
-		for k, _ := range kinds {
-			bestcards = kinds[k]
+		for _, cards := range kinds {
+			bestcards = cards
 		}
 		for _, card := range h.Cards {
 			if !containsStr(bestcards, card) {
