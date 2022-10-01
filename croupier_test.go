@@ -19,7 +19,7 @@ func (suite *CroupierTestSuite) BeforeTest(suiteName, testName string) {
 	switch testName {
 	case "TestRank", "TestSuit", "TestHandString":
 		suite.testHand = croupier.Hand{Cards: []string{"10.D"}}
-	case "TestCardValues":
+	case "TestCardsIntValues":
 		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S"}}
 	case "TestDeal2":
 		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{}}
@@ -41,17 +41,19 @@ func (suite *CroupierTestSuite) BeforeTest(suiteName, testName string) {
 	case "TestEvaluateHand_Order":
 		suite.testHand1 = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.S", "A.S"}}
 		suite.testTable = croupier.Table{CommunityCards: []string{"4.S", "5.S", "6.S", "J.S", "Q.S", "K.S"}}
+	case "TestSortCardsDesc":
+		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"8.S", "2.S", "K.S", "3.S", "4.S", "J.S", "Q.S", "6.S", "5.S"}}
 	}
 
 }
 
 func (suite *CroupierTestSuite) TestRank() {
-	result := croupier.Rank(suite.testHand.Cards[0])
+	result := croupier.RankStr(suite.testHand.Cards[0])
 	suite.Equal("10", result)
 }
 
 func (suite *CroupierTestSuite) TestSuit() {
-	result := croupier.Suit(suite.testHand.Cards[0])
+	result := croupier.SuitStr(suite.testHand.Cards[0])
 	suite.Equal("D", result)
 }
 
@@ -65,8 +67,8 @@ func (suite *CroupierTestSuite) TestDeal2() {
 	suite.Equal(2, len(suite.testHand.Cards))
 }
 
-func (suite *CroupierTestSuite) TestCardValues() {
-	result := croupier.CardValues(suite.testTable.Deck)
+func (suite *CroupierTestSuite) TestCardsIntValues() {
+	result := croupier.CardsIntValues(suite.testTable.Deck)
 	suite.Equal([]int{2, 3}, result)
 }
 
@@ -96,6 +98,12 @@ func (suite *CroupierTestSuite) TestEvaluateHand_Order() {
 func (suite *CroupierTestSuite) TestEvaluateHands() {
 	result := suite.testTable.EvaluateHands(&suite.testHand1, &suite.testHand2)
 	suite.Equal(suite.testHand1.PlayerName, result.PlayerName)
+}
+
+func (suite *CroupierTestSuite) TestSortCardsDesc() {
+	sorted := []string{}
+	result := croupier.SortCardsDesc(suite.testHand.Cards, sorted)
+	suite.Equal([]string{"K.S", "Q.S", "J.S", "8.S", "6.S", "5.S", "4.S", "3.S", "2.S"}, result)
 }
 
 func TestCroupierTestSuite(t *testing.T) {

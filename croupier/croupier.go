@@ -3,7 +3,6 @@ package croupier
 import (
 	"fmt"
 	"math/rand"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,16 +14,10 @@ var BestHands = []string{"Royal Flush", "Straight Flush", "Four of kind", "Full 
 var HandTypes = map[string]Hand{
 	// _ for discard
 	// * for wildcard
-	"Royal Flush":    {Cards: []string{"10.*", "11.*", "12.*", "13.*", "14.*"}},
-	"Straight Flush": {Cards: []string{"X.C", "X+1.C", "X+2.C", "X+3.C", "X+4.C"}}, // X for figure, C for Color
-	"Four of kind":   {Cards: []string{"X.*", "X.*", "X.*", "X.*", "*.*"}},
-	"Full House":     {Cards: []string{"X.*", "X.*", "X.*", "Y.*", "Y.*"}},
+	"Royal Flush":    {Cards: []string{"A.*", "K.*", "Q.*", "J.*", "10.*"}},
+	"Straight Flush": {Cards: []string{"X.C", "X-1.C", "X-2.C", "X-3.C", "X-4.C"}}, // X for figure, C for Color
 	"Flush":          {Cards: []string{"*.C", "*.C", "*.C", "*.C", "*.C"}},
-	"Streigh":        {Cards: []string{"X.*", "X+1.*", "X+2.*", "X+3.*", "X+4.*"}},
-	"Three of kind":  {Cards: []string{"X.*", "X.*", "X.*", "Y.*", "Z.*"}},
-	"Two pairs":      {Cards: []string{"X.*", "X.*", "Y.*", "Y.*", "_.*"}},
-	"Pair":           {Cards: []string{"X.*", "X.*", "_.*", "_.*", "_.*"}},
-	"High Card":      {Cards: []string{"X.*", "Y.*", "Z.*", "V.*", "Q.*"}},
+	"Streigh":        {Cards: []string{"X.*", "X-1.*", "X-2.*", "X-3.*", "X-4.*"}},
 }
 
 type Table struct {
@@ -39,7 +32,16 @@ type Hand struct {
 
 type Pair []int
 
-func contains(s []int, e int) bool {
+func pop(s []string, e string) []string {
+	for i, a := range s {
+		if a == e {
+			return append(s[:i], s[i+1:]...)
+		}
+	}
+	return []string{}
+}
+
+func containsStr(s []string, e string) bool {
 	for _, a := range s {
 		if a == e {
 			return true
@@ -48,19 +50,38 @@ func contains(s []int, e int) bool {
 	return false
 }
 
-func Rank(card string) string {
+func RankStr(card string) string {
 	return strings.Split(card, ".")[0]
 }
 
-func Suit(card string) string {
+func RankInt(card string) int {
+	switch RankStr(card) {
+	case "J":
+		return 11
+	case "Q":
+		return 12
+	case "K":
+		return 13
+	case "A":
+		return 14
+	default:
+		intVal, err := strconv.Atoi(RankStr(card))
+		if err != nil {
+			panic(err)
+		}
+		return intVal
+	}
+}
+
+func SuitStr(card string) string {
 	return strings.Split(card, ".")[1]
 }
 
-func CardValues(cards []string) []int {
+func CardsIntValues(cards []string) []int {
 	convertedCards := []int{}
 	for _, card := range cards {
 		var cardVal int
-		switch Rank(card) {
+		switch RankStr(card) {
 		case "J":
 			cardVal = 11
 		case "Q":
@@ -70,7 +91,7 @@ func CardValues(cards []string) []int {
 		case "A":
 			cardVal = 14
 		default:
-			intVal, err := strconv.Atoi(Rank(card))
+			intVal, err := strconv.Atoi(RankStr(card))
 			if err != nil {
 				panic(err)
 			}
@@ -81,78 +102,97 @@ func CardValues(cards []string) []int {
 	return convertedCards
 }
 
-func CardRaks(cards []int) []string {
-	convertedCards := []string{}
-	for _, card := range cards {
-		switch card {
-		case 11:
-			convertedCards = append(convertedCards, "J")
-		case 12:
-			convertedCards = append(convertedCards, "Q")
-		case 13:
-			convertedCards = append(convertedCards, "K")
-		case 14:
-			convertedCards = append(convertedCards, "A")
-		default:
-			convertedCards = append(convertedCards, strconv.Itoa(card))
-		}
+func CardValueString(card string) string {
+	Suit := SuitStr(card)
+	switch RankStr(card) {
+	case "J":
+		return "11." + Suit
+	case "Q":
+		return "12." + Suit
+	case "K":
+		return "13." + Suit
+	case "A":
+		return "14." + Suit
+	default:
+		return card
 	}
-	return convertedCards
 }
 
-func CompareRank(card1 string, card2 int) bool {
-	return Rank(card1) == strconv.Itoa(card2)
+func CompareRank(card1 string, card2 string) bool {
+	return RankInt(card1) == RankInt(card2)
 }
 
-func CompareSuit(card1 string, card2 int) bool {
-	return false
+func CompareSuit(card1 string, card2 string) bool {
+	return SuitStr(card1) == SuitStr(card2)
 }
 
-func GetHandType(cards []int) string {
-	for result, order := range HandTypes {
+func GetHandTypeStr(cards []string) string {
+	sorted := []string{}
+	cards = SortCardsDesc(cards, sorted)
+	result := []int{}
+	for i, besthand := range BestHands {
+		result[i] = 0
 		for i, card := range cards {
-			if CompareRank(order.Cards[i], card) {
-				break
+			if CompareRank(card, HandTypes[besthand].Cards[i]) {
+				result[i] += 1
 			}
-			return result
+		}
+		if result[i] == 5 {
+			return besthand
 		}
 	}
 	return ""
 }
 
-func FindOrder(handCards []int, tableCards []int) map[int][]int {
-	orderedCards := make(map[int][]int, 0)
-	allcards := []int{}
+func SortCardsDesc(cards, sorted []string) []string {
+	if len(cards) == 0 {
+		return sorted
+	}
+	for len(cards) > 0 {
+		HighestCard := ""
+		maxInt := 0
+		for _, card := range cards {
+			if RankInt(card) > maxInt {
+				maxInt = RankInt(card)
+				HighestCard = card
+			}
+		}
+		cards = pop(cards, HighestCard)
+		sorted = append(sorted, HighestCard)
+	}
+	return sorted
+}
+
+func FindOrder(handCards []string, tableCards []string) map[string][]string {
+	orderedCards := make(map[string][]string, 0)
+	allcards := []string{}
 	allcards = append(allcards, handCards...)
 	allcards = append(allcards, tableCards...)
-	sort.Ints(allcards)
+	sorted := []string{}
+	allcards = SortCardsDesc(allcards, sorted)
 	for i, card := range allcards {
-		orderedCards[card] = []int{card}
+		orderedCards[card] = []string{card}
 		for _, nextcard := range allcards[i:] {
-			if nextcard == orderedCards[card][len(orderedCards[card])-1]+1 {
+			if RankInt(nextcard) == RankInt(orderedCards[card][len(orderedCards[card])-1])-1 {
 				orderedCards[card] = append(orderedCards[card], nextcard)
 			}
 		}
-		if !contains(orderedCards[card], handCards[0]) && !contains(orderedCards[card], handCards[1]) || len(orderedCards[card]) != 5 {
+		if !containsStr(orderedCards[card], handCards[0]) && !containsStr(orderedCards[card], handCards[1]) || len(orderedCards[card]) != 5 {
 			delete(orderedCards, card)
 		}
 	}
-	// TODO:
-	// 1. find a way to ranks convertion looseless
-	// 2. check if there is more than one order - if so return best one
-
 	return orderedCards
 }
 
-func FindSameKind(handCards []int, tableCards []int) map[int]Pair {
+func FindSameKind(handCards []string, tableCards []string) map[string][]string {
 	// returns map of pair
 	// handcard is key
-	// table card indexes as stored as values
-	sameKind := make(map[int]Pair, 0)
+	// table cards are stored as values
+	sameKind := make(map[string][]string, 0)
 	for _, handCard := range handCards {
-		for i, tableCard := range tableCards {
-			if tableCard == handCard {
-				sameKind[handCard] = append(sameKind[handCard], i)
+		for _, tableCard := range tableCards {
+			if RankStr(tableCard) == RankStr(handCard) {
+				sameKind[handCard] = append(sameKind[handCard], tableCard)
 			}
 		}
 	}
@@ -160,24 +200,21 @@ func FindSameKind(handCards []int, tableCards []int) map[int]Pair {
 }
 
 func (t *Table) EvaluateHand(h *Hand) string {
-	// get cards from hand and table and convert them to int values
-	convertedHandCards := CardValues(h.Cards)
-	convertedTableCards := CardValues(t.CommunityCards)
-
-	// look for card pairs or groups in order
-	kinds := FindSameKind(convertedHandCards, convertedTableCards)
-	order := FindOrder(convertedHandCards, convertedTableCards)
-	fmt.Println(kinds)
-	fmt.Println(order)
+	kinds := FindSameKind(h.Cards, t.CommunityCards)
+	order := FindOrder(h.Cards, t.CommunityCards)
 	if len(order) > 0 {
 		for _, o := range order {
-			return GetHandType(o)
+			GetHandTypeStr(o)
+
+			// TODO:
+			// check all orders and return the best
 		}
 	}
 	if len(kinds) == 1 {
 		return "Pair"
+		// TODO:
+		// check all pairs and return the best
 	}
-
 	return "High Card"
 }
 
@@ -196,11 +233,11 @@ func (h *Hand) String() string {
 
 func (h *Hand) Show() {
 	fmt.Printf("______\n")
-	fmt.Printf("|   %v|\n", Suit(h.Cards[0]))
-	fmt.Printf("|%v\n", Rank(h.Cards[0]))
+	fmt.Printf("|   %v|\n", SuitStr(h.Cards[0]))
+	fmt.Printf("|%v\n", RankStr(h.Cards[0]))
 	fmt.Printf("______\n")
-	fmt.Printf("|   %v|\n", Suit(h.Cards[1]))
-	fmt.Printf("|%v\n", Rank(h.Cards[1]))
+	fmt.Printf("|   %v|\n", SuitStr(h.Cards[1]))
+	fmt.Printf("|%v\n", RankStr(h.Cards[1]))
 }
 
 func (t *Table) Shuffle() {
