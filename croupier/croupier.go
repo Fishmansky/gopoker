@@ -11,13 +11,17 @@ import (
 // best possible hands in descending order
 var BestHands = []string{"Royal Flush", "Straight Flush", "Four of kind", "Full House", "Flush", "Streigh", "Three of kind", "Two pairs", "Pair", "High Card"}
 
-var HandTypes = map[string]Hand{
-	// _ for discard
-	// * for wildcard
-	"Royal Flush":    {Cards: []string{"A.*", "K.*", "Q.*", "J.*", "10.*"}},
-	"Straight Flush": {Cards: []string{"X.C", "X-1.C", "X-2.C", "X-3.C", "X-4.C"}}, // X for figure, C for Color
-	"Flush":          {Cards: []string{"*.C", "*.C", "*.C", "*.C", "*.C"}},
-	"Streigh":        {Cards: []string{"X.*", "X-1.*", "X-2.*", "X-3.*", "X-4.*"}},
+var BestHandsOrder = map[string]int{
+	"Royal Flush":    0,
+	"Straight Flush": 1,
+	"Four of kind":   2,
+	"Full House":     3,
+	"Flush":          4,
+	"Streigh":        5,
+	"Three of kind":  6,
+	"Two pairs":      7,
+	"Pair":           8,
+	"High Card":      9,
 }
 
 type Table struct {
@@ -126,23 +130,64 @@ func CompareSuit(card1 string, card2 string) bool {
 	return SuitStr(card1) == SuitStr(card2)
 }
 
-func GetHandTypeStr(cards []string) string {
-	sorted := []string{}
-	cards = SortCardsDesc(cards, sorted)
-	result := []int{}
-	for i, besthand := range BestHands {
-		result[i] = 0
-		for i, card := range cards {
-			if CompareRank(card, HandTypes[besthand].Cards[i]) {
-				result[i] += 1
-			}
-		}
-		if result[i] == 5 {
-			return besthand
+func SameSuitCards(cards []string) bool {
+	suit := SuitStr(cards[0])
+	for _, card := range cards[1:] {
+		if SuitStr(card) != suit {
+			return false
 		}
 	}
-	return ""
+	return true
 }
+
+// func GetBestHand(kinds, orders, suits map[string][]string) (string, []string) {
+// 	pairs := 0
+// 	threes := 0
+// 	fours := 0
+// 	bestHand, bestcards := "High Card", []string{}
+// 	samesuit := len(suits) > 0
+// 	order := len(orders) > 0
+// 	for _, cards := range kinds {
+// 		switch len(cards) {
+// 		case 2:
+// 			pairs += 1
+// 		case 3:
+// 			threes += 1
+// 		case 4:
+// 			fours += 1
+// 		}
+// 	}
+
+// 	if samesuit && order {
+// 		for highC, cards := range orders {
+// 			if RankInt(highC) == 14 {
+// 				bestHand = BestHands[0]
+// 				bestcards = cards
+// 			} else {
+// 				bestHand = BestHands[1]
+// 				bestcards = cards
+// 			}
+// 		}
+// 	} else if !samesuit && order {
+// 		for _, cards := range orders {
+// 			bestHand = BestHands[1]
+// 			bestcards = cards
+// 		}
+
+// 	}
+// 	if fours == 1 {
+// 		bestHand = BestHands[2]
+// 		for k, _ := range kinds {
+// 			bestcards = kinds[k]
+// 		}
+// 	} else if threes == 1 {
+
+// 	}
+// 	if bestHand == "High Card" {
+
+// 	}
+// 	return bestHand, bestcards
+// }
 
 func SortCardsDesc(cards, sorted []string) []string {
 	if len(cards) == 0 {
@@ -189,38 +234,144 @@ func FindSameKind(handCards []string, tableCards []string) map[string][]string {
 	// handcard is key
 	// table cards are stored as values
 	sameKind := make(map[string][]string, 0)
+	if RankStr(handCards[0]) == RankStr(handCards[1]) {
+		sameKind[RankStr(handCards[0])] = handCards
+		for _, tableCard := range tableCards {
+			if RankStr(tableCard) == RankStr(handCards[0]) {
+				sameKind[RankStr(handCards[0])] = append(sameKind[RankStr(handCards[0])], tableCard)
+			}
+		}
+		return sameKind
+	}
+
 	for _, handCard := range handCards {
 		for _, tableCard := range tableCards {
 			if RankStr(tableCard) == RankStr(handCard) {
-				sameKind[handCard] = append(sameKind[handCard], tableCard)
+				sameKind[RankStr(handCard)] = append(sameKind[RankStr(handCard)], tableCard)
 			}
 		}
+		if len(sameKind[RankStr(handCard)]) > 0 {
+			sameKind[RankStr(handCard)] = append(sameKind[RankStr(handCard)], handCard)
+		}
+
 	}
 	return sameKind
 }
 
-func (t *Table) EvaluateHand(h *Hand) string {
-	kinds := FindSameKind(h.Cards, t.CommunityCards)
-	order := FindOrder(h.Cards, t.CommunityCards)
-	if len(order) > 0 {
-		for _, o := range order {
-			GetHandTypeStr(o)
-
-			// TODO:
-			// check all orders and return the best
+func FindSameSuit(handCards []string, tableCards []string) map[string][]string {
+	samesuitcards := make(map[string][]string, 0)
+	if SameSuitCards(handCards) {
+		samesuitcards[SuitStr(handCards[0])] = handCards
+		for _, card := range tableCards {
+			if CompareSuit(card, handCards[0]) {
+				samesuitcards[SuitStr(handCards[0])] = append(samesuitcards[SuitStr(handCards[0])], card)
+			}
+		}
+		if len(samesuitcards[SuitStr(handCards[0])]) < 5 {
+			delete(samesuitcards, SuitStr(handCards[0]))
+		}
+	} else {
+		for _, handCard := range handCards {
+			samesuitcards[SuitStr(handCard)] = []string{handCard}
+			for _, card := range tableCards {
+				if CompareSuit(card, handCard) {
+					samesuitcards[SuitStr(handCard)] = append(samesuitcards[SuitStr(handCard)], card)
+				}
+			}
+			if len(samesuitcards[SuitStr(handCard)]) < 5 {
+				delete(samesuitcards, SuitStr(handCard))
+			}
 		}
 	}
-	if len(kinds) == 1 {
-		return "Pair"
-		// TODO:
-		// check all pairs and return the best
-	}
-	return "High Card"
+	return samesuitcards
 }
 
-func (t *Table) EvaluateHands(hands ...*Hand) Hand {
+func (t *Table) EvaluateHand(h *Hand) (string, []string) {
+	kinds := FindSameKind(h.Cards, t.CommunityCards)
+	order := FindOrder(h.Cards, t.CommunityCards)
+	suits := FindSameSuit(h.Cards, t.CommunityCards)
+	pairs := 0
+	threes := 0
+	fours := 0
+	bestHand, bestcards := "High Card", []string{}
+	allcards := []string{}
+	allcards = append(allcards, h.Cards...)
+	allcards = append(allcards, t.CommunityCards...)
+	sorted := []string{}
+	bestcards = SortCardsDesc(allcards, sorted)
+	samesuit := len(suits) > 0
+	inOrder := len(order) > 0
+	for _, cards := range kinds {
+		switch len(cards) {
+		case 2:
+			pairs += 1
+		case 3:
+			threes += 1
+		case 4:
+			fours += 1
+		}
+	}
 
-	return Hand{}
+	if samesuit && inOrder {
+		for highC, cards := range order {
+			if RankInt(highC) == 14 {
+				bestHand = BestHands[0]
+				bestcards = cards
+			} else {
+				bestHand = BestHands[1]
+				bestcards = cards
+			}
+		}
+	} else if !samesuit && inOrder {
+		for _, cards := range order {
+			bestHand = BestHands[1]
+			bestcards = cards
+		}
+
+	} else if samesuit && !inOrder {
+		for _, cards := range suits {
+			bestHand = BestHands[4]
+			bestcards = cards
+		}
+
+	}
+	if fours == 1 {
+		bestHand = BestHands[2]
+		for k, _ := range kinds {
+			bestcards = kinds[k]
+		}
+		for _, card := range h.Cards {
+			if !containsStr(bestcards, card) {
+				bestcards = append(bestcards, card)
+			}
+		}
+
+	} else if threes == 1 {
+		if pairs == 1 {
+			bestHand = BestHands[3]
+			for _, cards := range kinds {
+				bestcards = append(bestcards, cards...)
+			}
+
+		}
+
+	}
+	return bestHand, bestcards
+}
+
+func (t *Table) EvaluateHands(hands ...*Hand) (string, []string) {
+	winnerResult := "High Card"
+	winner := ""
+	winnerCards := []string{}
+	for _, hand := range hands {
+		result, cards := t.EvaluateHand(hand)
+		if BestHandsOrder[winnerResult] > BestHandsOrder[result] {
+			winnerResult = result
+			winner = hand.PlayerName
+			winnerCards = cards
+		}
+	}
+	return winner, winnerCards
 }
 
 func (t *Table) String() string {

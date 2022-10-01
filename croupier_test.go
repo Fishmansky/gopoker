@@ -30,21 +30,40 @@ func (suite *CroupierTestSuite) BeforeTest(suiteName, testName string) {
 		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "9.S", "10.S", "J.S", "Q.S", "K.S", "A.S"}}
 	case "TestEvaluateHand":
 		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.S", "A.S"}}
-		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}}
+		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"Q.S", "K.S", "J.S"}}
+	case "TestEvaluateHand_RoyalFlush":
+		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.S", "A.S"}}
+		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"Q.S", "K.S", "J.S"}}
+	case "TestEvaluateHand_StraightFlush":
+		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.D", "A.S"}}
+		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"Q.H", "K.S", "J.S"}}
+	case "TestEvaluateHand_FourOfKind":
+		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"A.D", "J.S"}}
+		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"A.H", "A.C", "A.S"}}
 	case "TestEvaluateHands":
 		suite.testHand1 = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.S", "A.S"}}
 		suite.testHand2 = croupier.Hand{PlayerName: "Player1", Cards: []string{"8.S", "9.S"}}
-		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "7.S", "J.S", "Q.S", "K.S"}}
-	case "TestEvaluateHand_Pair":
+		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "7.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"J.S", "Q.S", "K.S"}}
+	case "TestFindSameKind":
 		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"K.D", "A.S"}}
 		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"Q.S", "K.S"}}
-	case "TestEvaluateHand_Order":
-		suite.testHand1 = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.S", "A.S"}}
+	case "TestFindOrder":
+		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.S", "A.S"}}
 		suite.testTable = croupier.Table{CommunityCards: []string{"4.S", "5.S", "6.S", "J.S", "Q.S", "K.S"}}
+	case "TestFindSameSuit":
+		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"J.S", "A.S"}}
+		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"8.S", "6.S", "3.S"}}
 	case "TestSortCardsDesc":
 		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"8.S", "2.S", "K.S", "3.S", "4.S", "J.S", "Q.S", "6.S", "5.S"}}
 	}
 
+}
+
+func (suite *CroupierTestSuite) AfterTest(suiteName, testName string) {
+	suite.testHand = croupier.Hand{}
+	suite.testHand1 = croupier.Hand{}
+	suite.testHand2 = croupier.Hand{}
+	suite.testTable = croupier.Table{}
 }
 
 func (suite *CroupierTestSuite) TestRank() {
@@ -81,23 +100,48 @@ func (suite *CroupierTestSuite) TestShuffle() {
 	suite.NotEqual("2.S 3.S 4.S 5.S 6.S 8.S 9.S 10.S J.S Q.S K.S A.S", suite.testTable.String())
 }
 
-func (suite *CroupierTestSuite) TestEvaluateHand() {
-	result := suite.testTable.EvaluateHand(&suite.testHand)
-	suite.Equal("Royal Flush", result)
+func (suite *CroupierTestSuite) TestFindSameSuit() {
+	result := croupier.FindSameSuit(suite.testHand.Cards, suite.testTable.CommunityCards)
+	suite.Equal(map[string][]string{"S": {"J.S", "A.S", "8.S", "6.S", "3.S"}}, result)
 }
 
-func (suite *CroupierTestSuite) TestEvaluateHand_Pair() {
-	result := suite.testTable.EvaluateHand(&suite.testHand)
-	suite.Equal("Pair", result)
+func (suite *CroupierTestSuite) TestFindSameKind() {
+	result := croupier.FindSameKind(suite.testHand.Cards, suite.testTable.CommunityCards)
+	suite.Equal(map[string][]string{"K": {"K.S", "K.D"}}, result)
 }
-func (suite *CroupierTestSuite) TestEvaluateHand_Order() {
-	result := suite.testTable.EvaluateHand(&suite.testHand1)
+func (suite *CroupierTestSuite) TestFindOrder() {
+	result := croupier.FindOrder(suite.testHand.Cards, suite.testTable.CommunityCards)
+	suite.Equal(map[string][]string(map[string][]string{"A.S": {"A.S", "K.S", "Q.S", "J.S", "10.S"}}), result)
+}
+
+func (suite *CroupierTestSuite) TestEvaluateHand() {
+	result, cards := suite.testTable.EvaluateHand(&suite.testHand)
 	suite.Equal("Royal Flush", result)
+	suite.Equal([]string([]string{"A.S", "K.S", "Q.S", "J.S", "10.S"}), cards)
+}
+
+func (suite *CroupierTestSuite) TestEvaluateHand_RoyalFlush() {
+	result, cards := suite.testTable.EvaluateHand(&suite.testHand)
+	suite.Equal("Royal Flush", result)
+	suite.Equal([]string([]string{"A.S", "K.S", "Q.S", "J.S", "10.S"}), cards)
+}
+
+func (suite *CroupierTestSuite) TestEvaluateHand_StraightFlush() {
+	result, cards := suite.testTable.EvaluateHand(&suite.testHand)
+	suite.Equal("Straight Flush", result)
+	suite.Equal([]string([]string{"A.S", "K.S", "Q.H", "J.S", "10.D"}), cards)
+}
+
+func (suite *CroupierTestSuite) TestEvaluateHand_FourOfKind() {
+	result, cards := suite.testTable.EvaluateHand(&suite.testHand)
+	suite.Equal("Four of kind", result)
+	suite.Equal([]string{"A.H", "A.C", "A.S", "A.D", "J.S"}, cards)
 }
 
 func (suite *CroupierTestSuite) TestEvaluateHands() {
-	result := suite.testTable.EvaluateHands(&suite.testHand1, &suite.testHand2)
-	suite.Equal(suite.testHand1.PlayerName, result.PlayerName)
+	result, cards := suite.testTable.EvaluateHands(&suite.testHand1, &suite.testHand2)
+	suite.Equal(suite.testHand1.PlayerName, result)
+	suite.Equal([]string([]string{"A.S", "K.S", "Q.S", "J.S", "10.S"}), cards)
 }
 
 func (suite *CroupierTestSuite) TestSortCardsDesc() {
