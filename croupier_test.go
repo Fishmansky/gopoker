@@ -42,8 +42,12 @@ func (suite *CroupierTestSuite) BeforeTest(suiteName, testName string) {
 		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"A.H", "A.C", "A.S"}}
 	case "TestEvaluateHands":
 		suite.testHand1 = croupier.Hand{PlayerName: "Player1", Cards: []string{"10.S", "A.S"}}
-		suite.testHand2 = croupier.Hand{PlayerName: "Player1", Cards: []string{"8.S", "9.S"}}
+		suite.testHand2 = croupier.Hand{PlayerName: "Player2", Cards: []string{"8.S", "9.S"}}
 		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "7.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"J.S", "Q.S", "K.S"}}
+	case "TestEvaluateHands_HigherCard":
+		suite.testHand1 = croupier.Hand{PlayerName: "Player1", Cards: []string{"5.S", "6.D"}}
+		suite.testHand2 = croupier.Hand{PlayerName: "Player2", Cards: []string{"7.C", "9.S"}}
+		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "7.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"8.H", "J.C", "Q.H"}}
 	case "TestFindSameKind":
 		suite.testHand = croupier.Hand{PlayerName: "Player1", Cards: []string{"K.D", "A.S"}}
 		suite.testTable = croupier.Table{Deck: []string{"2.S", "3.S", "4.S", "5.S", "6.S", "8.S", "J.S", "Q.S", "K.S"}, CommunityCards: []string{"Q.S", "K.S"}}
@@ -107,7 +111,7 @@ func (suite *CroupierTestSuite) TestFindSameSuit() {
 
 func (suite *CroupierTestSuite) TestFindSameKind() {
 	result := croupier.FindSameKind(suite.testHand.Cards, suite.testTable.CommunityCards)
-	suite.Equal(map[string][]string{"K": {"K.S", "K.D"}}, result)
+	suite.Equal(map[string][]string{"K": {"K.D", "K.S"}}, result)
 }
 func (suite *CroupierTestSuite) TestFindOrder() {
 	result := croupier.FindOrder(suite.testHand.Cards, suite.testTable.CommunityCards)
@@ -135,7 +139,7 @@ func (suite *CroupierTestSuite) TestEvaluateHand_StraightFlush() {
 func (suite *CroupierTestSuite) TestEvaluateHand_FourOfKind() {
 	result, cards := suite.testTable.EvaluateHand(&suite.testHand)
 	suite.Equal("Four of kind", result)
-	suite.Equal([]string{"A.H", "A.C", "A.S", "A.D", "J.S"}, cards)
+	suite.Equal([]string{"A.D", "A.H", "A.C", "A.S", "J.S"}, cards)
 }
 
 func (suite *CroupierTestSuite) TestEvaluateHands() {
@@ -144,9 +148,14 @@ func (suite *CroupierTestSuite) TestEvaluateHands() {
 	suite.Equal([]string([]string{"A.S", "K.S", "Q.S", "J.S", "10.S"}), cards)
 }
 
+func (suite *CroupierTestSuite) TestEvaluateHands_HigherCard() {
+	result, cards := suite.testTable.EvaluateHands(&suite.testHand1, &suite.testHand2)
+	suite.Equal("", result)
+	suite.Equal("", cards)
+}
+
 func (suite *CroupierTestSuite) TestSortCardsDesc() {
-	sorted := []string{}
-	result := croupier.SortCardsDesc(suite.testHand.Cards, sorted)
+	result := croupier.SortCardsDesc(suite.testHand.Cards)
 	suite.Equal([]string{"K.S", "Q.S", "J.S", "8.S", "6.S", "5.S", "4.S", "3.S", "2.S"}, result)
 }
 

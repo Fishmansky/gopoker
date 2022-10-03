@@ -140,7 +140,8 @@ func SameSuitCards(cards []string) bool {
 	return true
 }
 
-func SortCardsDesc(cards, sorted []string) []string {
+func SortCardsDesc(cards []string) []string {
+	sorted := []string{}
 	if len(cards) == 0 {
 		return sorted
 	}
@@ -164,8 +165,7 @@ func FindOrder(handCards []string, tableCards []string) map[string][]string {
 	allcards := []string{}
 	allcards = append(allcards, handCards...)
 	allcards = append(allcards, tableCards...)
-	sorted := []string{}
-	allcards = SortCardsDesc(allcards, sorted)
+	allcards = SortCardsDesc(allcards)
 	for i, card := range allcards {
 		orderedCards[card] = []string{card}
 		for _, nextcard := range allcards[i:] {
@@ -181,31 +181,19 @@ func FindOrder(handCards []string, tableCards []string) map[string][]string {
 }
 
 func FindSameKind(handCards []string, tableCards []string) map[string][]string {
-	// returns map of pair
-	// handcard is key
-	// table cards are stored as values
 	sameKind := make(map[string][]string, 0)
-	if RankStr(handCards[0]) == RankStr(handCards[1]) {
-		sameKind[RankStr(handCards[0])] = handCards
-		for _, tableCard := range tableCards {
-			if RankStr(tableCard) == RankStr(handCards[0]) {
-				sameKind[RankStr(handCards[0])] = append(sameKind[RankStr(handCards[0])], tableCard)
-			}
-		}
-		return sameKind
-	}
-
 	for _, handCard := range handCards {
-		for _, tableCard := range tableCards {
-			if RankStr(tableCard) == RankStr(handCard) {
-				sameKind[RankStr(handCard)] = append(sameKind[RankStr(handCard)], tableCard)
-			}
-		}
-		if len(sameKind[RankStr(handCard)]) > 0 {
-			sameKind[RankStr(handCard)] = append(sameKind[RankStr(handCard)], handCard)
-		}
-
+		sameKind[RankStr(handCard)] = append(sameKind[RankStr(handCard)], handCard)
 	}
+	for _, tableCard := range tableCards {
+		sameKind[RankStr(tableCard)] = append(sameKind[RankStr(tableCard)], tableCard)
+	}
+	for kind, cards := range sameKind {
+		if len(cards) < 2 {
+			delete(sameKind, kind)
+		}
+	}
+	fmt.Println(sameKind)
 	return sameKind
 }
 
@@ -248,8 +236,7 @@ func (t *Table) EvaluateHand(h *Hand) (string, []string) {
 	allcards := []string{}
 	allcards = append(allcards, h.Cards...)
 	allcards = append(allcards, t.CommunityCards...)
-	sorted := []string{}
-	bestcards := SortCardsDesc(allcards, sorted)
+	bestcards := SortCardsDesc(allcards)
 	samesuit := len(suits) > 0
 	inOrder := len(order) > 0
 	for _, cards := range kinds {
@@ -262,6 +249,7 @@ func (t *Table) EvaluateHand(h *Hand) (string, []string) {
 			fours += 1
 		}
 	}
+	fmt.Println(pairs, threes, fours)
 
 	if samesuit && inOrder {
 		for highC, cards := range order {
@@ -300,13 +288,17 @@ func (t *Table) EvaluateHand(h *Hand) (string, []string) {
 	} else if threes == 1 {
 		if pairs == 1 {
 			bestHand = BestHands[3]
-			for _, cards := range kinds {
-				bestcards = append(bestcards, cards...)
-			}
-
+		} else {
+			bestHand = BestHands[6]
 		}
-
+	} else if threes == 0 && fours == 0 {
+		if pairs == 2 {
+			bestHand = BestHands[7]
+		} else if pairs == 1 {
+			bestHand = BestHands[8]
+		}
 	}
+	fmt.Println(bestcards)
 	return bestHand, bestcards
 }
 
@@ -316,10 +308,24 @@ func (t *Table) EvaluateHands(hands ...*Hand) (string, []string) {
 	winnerCards := []string{}
 	for _, hand := range hands {
 		result, cards := t.EvaluateHand(hand)
+		fmt.Println(result)
 		if BestHandsOrder[winnerResult] > BestHandsOrder[result] {
 			winnerResult = result
 			winner = hand.PlayerName
 			winnerCards = cards
+		} else if BestHandsOrder[winnerResult] == BestHandsOrder[result] {
+			switch result {
+			case BestHands[0], BestHands[1], BestHands[4]:
+				HighestCard := 0
+				for _, hand := range hands {
+					if HighestCard < RankInt(SortCardsDesc(hand.Cards)[0]) {
+						HighestCard = RankInt(SortCardsDesc(hand.Cards)[0])
+						winner = hand.PlayerName
+					}
+				}
+			case BestHands[2], BestHands[3], BestHands[6], BestHands[7], BestHands[8], BestHands[9]:
+
+			}
 		}
 	}
 	return winner, winnerCards
