@@ -193,7 +193,6 @@ func FindSameKind(handCards []string, tableCards []string) map[string][]string {
 			delete(sameKind, kind)
 		}
 	}
-	fmt.Println(sameKind)
 	return sameKind
 }
 
@@ -249,7 +248,6 @@ func (t *Table) EvaluateHand(h *Hand) (string, []string) {
 			fours += 1
 		}
 	}
-	fmt.Println(pairs, threes, fours)
 
 	if samesuit && inOrder {
 		for highC, cards := range order {
@@ -308,7 +306,6 @@ func (t *Table) EvaluateHands(hands ...*Hand) (string, []string) {
 	winnerCards := []string{}
 	for _, hand := range hands {
 		result, cards := t.EvaluateHand(hand)
-		fmt.Println(result)
 		if BestHandsOrder[winnerResult] > BestHandsOrder[result] {
 			winnerResult = result
 			winner = hand.PlayerName
@@ -342,10 +339,10 @@ func (h *Hand) String() string {
 func (h *Hand) Show() {
 	fmt.Printf("______\n")
 	fmt.Printf("|   %v|\n", SuitStr(h.Cards[0]))
-	fmt.Printf("|%v\n", RankStr(h.Cards[0]))
+	fmt.Printf("|%v   |\n", RankStr(h.Cards[0]))
 	fmt.Printf("______\n")
 	fmt.Printf("|   %v|\n", SuitStr(h.Cards[1]))
-	fmt.Printf("|%v\n", RankStr(h.Cards[1]))
+	fmt.Printf("|%v   |\n", RankStr(h.Cards[1]))
 }
 
 func (t *Table) Shuffle() {
