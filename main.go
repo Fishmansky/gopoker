@@ -19,5 +19,5 @@ func main() {
 	table.Deal2(&myHand)
 
 	fmt.Println(myHand.String())
-	myHand.Show()
+	myHand.Show3()
 }

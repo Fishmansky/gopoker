@@ -345,6 +345,12 @@ func (h *Hand) Show() {
 	fmt.Printf("|%v   |\n", RankStr(h.Cards[1]))
 }
 
+func (h *Hand) Show2() {
+	fmt.Printf("______ _____\n")
+	fmt.Printf("|   %v| |   %v|\n", SuitStr(h.Cards[0]), SuitStr(h.Cards[1]))
+	fmt.Printf("|%v   | |%v   |\n", RankStr(h.Cards[0]), RankStr(h.Cards[1]))
+}
+
 func (t *Table) Shuffle() {
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(t.Deck), func(i, j int) {
